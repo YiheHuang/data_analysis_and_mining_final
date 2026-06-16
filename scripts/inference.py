@@ -185,7 +185,7 @@ def predict(lat: float, lon: float, target_date: str,
 
 
 def main():
-    parser = argparse.ArgumentParser(description="UrbanAir PM2.5 推理")
+    parser = argparse.ArgumentParser(description="RetroAir PM2.5 推理")
     parser.add_argument("--lat", type=float, required=True)
     parser.add_argument("--lon", type=float, required=True)
     parser.add_argument("--date", required=True)

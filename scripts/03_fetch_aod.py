@@ -14,6 +14,7 @@
   3. 在 ADS 网页接受 cams-global-reanalysis-eac4 使用许可
 """
 import argparse
+import os
 import sys
 from pathlib import Path
 
@@ -38,6 +39,24 @@ from config import (
 _FILL_VALUE = np.float32(3.4028234663852886e38)
 
 
+def _ensure_cds_credentials() -> None:
+    """允许用项目 .env 中的 ADS_API_KEY/ADS_API_URL 配置 cdsapi。"""
+    cdsapirc = Path.home() / ".cdsapirc"
+    if cdsapirc.exists():
+        return
+
+    ads_key = os.getenv("ADS_API_KEY", "").strip()
+    if not ads_key or ads_key.startswith("your_"):
+        raise RuntimeError(
+            "下载 CAMS EAC4 需要 Copernicus ADS API Key。请在项目根目录 .env 中填写 "
+            "ADS_API_KEY，或按 README 手工创建 ~/.cdsapirc。"
+        )
+
+    ads_url = os.getenv("ADS_API_URL", "https://ads.atmosphere.copernicus.eu/api").strip()
+    cdsapirc.write_text(f"url: {ads_url}\nkey: {ads_key}\n", encoding="utf-8")
+    print(f"  已根据 .env 创建 cdsapi 配置: {cdsapirc}")
+
+
 def _download_cams_year(year: int, out_dir: Path) -> Path:
     """下载单年 CAMS EAC4 NetCDF，若已存在则跳过。"""
     out_path = out_dir / f"cams_eac4_china_{year}.nc"
@@ -48,6 +67,7 @@ def _download_cams_year(year: int, out_dir: Path) -> Path:
     print(f"  下载 CAMS EAC4 {year} (约 185 MB)...")
     import cdsapi
 
+    _ensure_cds_credentials()
     client = cdsapi.Client(quiet=True)
     request = {
         "variable": list(CAMS_CDS_VARIABLES),

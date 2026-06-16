@@ -14,7 +14,7 @@
 
 - **输入**：17 维特征（9 个 AOD 通道 + 7 个气象变量 + 日期编码）
 - **输出**：PM2.5 浓度（μg/m³），附空气质量等级
-- **模型**：ResMLP（残差多层感知机），R² ≈ 0.89，RMSE ≈ 9.8 μg/m³
+- **模型**：ResMLP（残差多层感知机），10 个随机种子平均 R² ≈ 0.893，RMSE ≈ 9.6 μg/m³
 - **覆盖**：全球任意经纬度，2018 年至 CAMS 最新可用年份
 - **界面**：Streamlit 交互式 Web 应用，支持地图选点 + 城市快捷选择
 
@@ -76,7 +76,45 @@ RetroAir/
 pip install -r requirements.txt
 ```
 
-### 2. 构建数据集（以北京为例）
+### 2. 配置 API Key 与环境变量
+
+项目根目录提供了 `.env.example` 模板。首次运行前请复制为 `.env`，并按需填写自己的 API Key：
+
+```bash
+cp .env.example .env
+```
+
+Windows PowerShell 可使用：
+
+```powershell
+Copy-Item .env.example .env
+```
+
+当前项目涉及的数据源说明如下：
+
+| 数据源 | 是否需要 API Key | 说明 |
+|------|------|------|
+| AKShare 真气网监测站数据 | 否 | `01_fetch_aqi.py` 直接通过 AKShare 接口获取公开数据 |
+| NASA POWER 气象数据 | 否 | `02_fetch_weather.py` 和 `scripts/inference.py` 使用公开 Daily API |
+| Open-Meteo 气象兜底 | 否 | NASA POWER 请求失败时自动兜底 |
+| CAMS EAC4 AOD 数据 | **是** | `03_fetch_aod.py` 下载 NetCDF 时需要 Copernicus ADS 账号和 API Key |
+
+`.env` 中最重要的是：
+
+```dotenv
+ADS_API_URL=https://ads.atmosphere.copernicus.eu/api
+ADS_API_KEY=your_ads_uid:your_ads_api_key
+```
+
+请注意：
+
+1. CAMS EAC4 数据来自 Copernicus Atmosphere Data Store，需要先注册账号并获取 API Key。
+2. 获取 Key 后，还需要在 ADS 网页端接受 `cams-global-reanalysis-eac4` 数据集许可；否则脚本会因为权限不足下载失败。
+3. 若已手工配置过 `~/.cdsapirc`，脚本会优先使用该文件；若没有，`03_fetch_aod.py` 会尝试根据 `.env` 自动生成 `~/.cdsapirc`。
+4. `.env` 已被 `.gitignore` 忽略，请不要把真实 Key 提交到仓库；提交时保留 `.env.example` 作为模板即可。
+5. 如果只是复现实验或运行 Web 应用，仓库中已有缓存数据和模型时通常不需要重新下载 CAMS；只有从零构建数据集时才必须配置 ADS Key。
+
+### 3. 构建数据集（以北京为例）
 
 ```bash
 # 单城市 2018-2025 完整流程
@@ -88,13 +126,13 @@ python scripts/05_merge_to_final.py \
     --out data/processed/final/merged_8_cities_2018_2025.csv
 ```
 
-### 3. 运行算法对比
+### 4. 运行算法对比
 
 ```bash
 python scripts/06_compare_algorithms.py
 ```
 
-### 4. 启动 Web 推理应用
+### 5. 启动 Web 推理应用
 
 ```bash
 streamlit run app.py
@@ -151,19 +189,19 @@ streamlit run app.py
 
 ## 模型对比
 
-8 城市 310,756 样本，随机切分，LightGBM 超参数统一对比：
+8 城市 310,756 样本，随机切分，使用 10 个随机种子（42–51）重复实验后按平均水平对比：
 
-| 模型 | R² | RMSE | MAE | SMAPE% | 参数量 |
+| 模型 | R² mean±std | RMSE mean±std | MAE mean±std | SMAPE% mean±std | 参数量 |
 |------|-----|------|-----|--------|--------|
-| **ResMLP (warmup)** | **0.889** | **9.76** | **6.22** | **22.0** | 144K |
-| CatBoost | 0.810 | 12.77 | 8.43 | 27.4 | — |
-| DCN-V2 | 0.809 | 12.78 | 8.25 | 27.1 | 48K |
-| LightGBM | 0.808 | 12.83 | 8.54 | 27.8 | — |
-| XGBoost | 0.767 | 14.12 | 9.32 | 29.5 | — |
+| **ResMLP (warmup)** | **0.8929±0.0031** | **9.59±0.14** | **6.20±0.04** | **21.9±0.1** | 144K |
+| CatBoost | 0.8146±0.0034 | 12.61±0.12 | 8.40±0.02 | 27.3±0.1 | — |
+| DCN-V2 | 0.8132±0.0042 | 12.66±0.12 | 8.22±0.03 | 27.0±0.1 | 48K |
+| LightGBM | 0.8119±0.0032 | 12.70±0.11 | 8.53±0.03 | 27.8±0.1 | — |
+| XGBoost | 0.7727±0.0037 | 13.96±0.11 | 9.29±0.03 | 29.5±0.1 | — |
 
 ![alt text](comparison_chart.png)
 
-ResMLP（带 warmup 的残差 MLP）在所有指标上断层领先，且 Pearson 相关系数达 0.94。推理应用中使用的即为此模型。
+ResMLP（带 warmup 的残差 MLP）在 10 个随机种子的平均指标上均保持领先，Pearson 相关系数平均约为 0.945。推理应用中使用的即为此模型。
 
 ---
 
@@ -193,4 +231,4 @@ MAPE 仅对 PM2.5 ≥ 1 的样本计算，避免分母为零导致的数值爆�
 
 ## 依赖
 
-主要依赖：`pandas`, `numpy`, `scikit-learn`, `torch`, `lightgbm`, `xgboost`, `catboost`, `xarray`, `netCDF4`, `cdsapi`, `akshare`, `streamlit`, `folium`, `matplotlib`
+主要依赖：`pandas`, `numpy`, `scikit-learn`, `torch`, `lightgbm`, `xgboost`, `catboost`, `xarray`, `netCDF4`, `cdsapi`, `akshare`, `streamlit`, `folium`, `streamlit-folium`, `matplotlib`, `python-dotenv`

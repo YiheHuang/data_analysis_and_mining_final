@@ -1,12 +1,16 @@
 """
-UrbanAir 共享配置 —— 城市坐标、路径、特征列表
+RetroAir 共享配置 —— 城市坐标、路径、特征列表
 基于 气象 + AOD 推断 PM2.5（空间插值任务）
 所有脚本从此导入，避免重复定义
 """
 from pathlib import Path
 
+from dotenv import load_dotenv
+
 # --- 路径 ---
 ROOT = Path(__file__).parent
+load_dotenv(ROOT / ".env")
+
 DATA_RAW = ROOT / "data" / "raw"
 DATA_PROCESSED = ROOT / "data" / "processed"
 DATA_MODELS = ROOT / "data" / "models"

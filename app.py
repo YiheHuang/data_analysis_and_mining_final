@@ -1,5 +1,5 @@
 """
-UrbanAir PM2.5 推理应用
+RetroAir PM2.5 推理应用
 
 用法:
   streamlit run app.py
@@ -29,7 +29,7 @@ CITY_PRESETS = {
 
 DEFAULT_LAT, DEFAULT_LON = 35.0, 105.0
 
-st.set_page_config(page_title="UrbanAir PM2.5", page_icon="🌫️", layout="wide")
+st.set_page_config(page_title="RetroAir PM2.5", page_icon="🌫️", layout="wide")
 
 model, scaler, feature_cols, y_mean, y_std = load_predictor()
 
@@ -42,7 +42,7 @@ for key, default in [
     if key not in st.session_state:
         st.session_state[key] = default
 
-st.title("🌫️ UrbanAir — PM2.5 实时推理")
+st.title("🌫️ RetroAir — PM2.5 历史回顾推理")
 st.caption(f"ResMLP · {len(feature_cols)} 特征")
 
 col_map, col_ctrl = st.columns([2, 1])

@@ -1,4 +1,4 @@
-\documentclass[UTF8,zihao=-4,a4paper]{ctexart}
+﻿\documentclass[UTF8,zihao=-4,a4paper]{ctexart}
 
 \usepackage{geometry}
 \usepackage{fontspec}
@@ -69,7 +69,7 @@
 \begin{abstract}
 地面空气质量监测站能够提供可靠的 \pmfine{} 浓度观测，但其空间覆盖受建设成本和维护条件限制，难以满足无站点地区历史暴露评估、环境健康研究和城市空气质量回顾分析的需求。针对这一问题，本文设计并实现了 RetroAir，一个融合卫星气溶胶光学厚度（Aerosol Optical Depth, \aod{}）与气象数据的端到端历史 \pmfine{} 回顾性推断系统。系统以 AKShare 真气网监测站数据作为监督标签，结合 CAMS EAC4 气溶胶再分析数据和 NASA POWER 日尺度气象数据，构建覆盖 2018--2025 年、中国 8 个城市、126 个监测站的多源融合数据集。方法上，系统形成了从数据获取、站点对齐、NetCDF 气溶胶特征提取、三源数据合并、特征标准化、模型训练、统一评估到 Web 推理应用的完整流水线。最终特征体系包含 9 个 \aod{} 特征、7 个气象特征和 1 个时间特征。
 
-在模型层面，本文系统比较了 ResMLP、DCN-V2、CatBoost、LightGBM 和 XGBoost 等 5 类回归模型。实验结果表明，带 warmup 训练策略的残差多层感知机 ResMLP 在 8 城市 310,756 个样本上取得最优表现，测试集 $R^2$ 达 0.889，RMSE 为 9.76 $\mu g/m^3$，MAE 为 6.22 $\mu g/m^3$，Pearson 相关系数约为 0.94。消融实验显示，气象+\aod{} 特征组合优于引入 OSM 空间特征或 MODIS RGB 反射率的扩展组合，说明本任务中动态气溶胶与气象变量已经提供了主要预测信息。系统最终通过 Streamlit 构建轻量级交互界面，支持地图选点、城市快捷选择、日期选择和一键 \pmfine{} 推理，完成了数据挖掘应用从数据到决策展示的闭环。
+在模型层面，本文系统比较了 ResMLP、DCN-V2、CatBoost、LightGBM 和 XGBoost 等 5 类回归模型，并使用 10 个随机种子重复实验以降低单次随机切分带来的偶然性。实验结果表明，带 warmup 训练策略的残差多层感知机 ResMLP 在 8 城市 310,756 个样本上取得最优平均表现，测试集 $R^2$ 为 $0.8929\pm0.0031$，RMSE 为 $9.59\pm0.14\ \mu g/m^3$，MAE 为 $6.20\pm0.04\ \mu g/m^3$，Pearson 相关系数为 $0.945\pm0.002$。消融实验显示，气象+\aod{} 特征组合优于引入 OSM 空间特征或 MODIS RGB 反射率的扩展组合，说明本任务中动态气溶胶与气象变量已经提供了主要预测信息。系统最终通过 Streamlit 构建轻量级交互界面，支持地图选点、城市快捷选择、日期选择和一键 \pmfine{} 推理，完成了数据挖掘应用从数据到决策展示的闭环。
 
 \noindent\textbf{关键词：} \pmfine{}；气溶胶光学厚度；多源数据融合；ResMLP；数据挖掘；端到端应用系统
 \end{abstract}
@@ -354,7 +354,7 @@ RetroAir 的总体架构如图\ref{fig:pipeline}所示。系统以站点、日�
 
 \subsection{实验可比性控制}
 
-为了使模型对比具有学术意义，实验设计需要控制除模型结构以外的主要变量。根据本项目实验设计，统一对比实验使用相同的 17 维输入特征、相同的 8 城市样本集合、相同的随机切分策略和相同的回归指标体系。树模型和神经网络模型虽然训练机制不同，但最终均在测试集原始 \pmfine{} 尺度上报告 $R^2$、RMSE、MAE 和 SMAPE，因此表\ref{tab:model_compare}中的数值具有可比性。
+为了使模型对比具有学术意义，实验设计需要控制除模型结构以外的主要变量。根据本项目实验设计，统一对比实验使用相同的 17 维输入特征、相同的 8 城市样本集合、相同的随机切分策略和相同的回归指标体系。为降低单次随机切分和模型初始化带来的偶然性，本文使用 10 个随机种子（42--51）重复实验，并报告各指标的均值和标准差。树模型和神经网络模型虽然训练机制不同，但最终均在测试集原始 \pmfine{} 尺度上报告 $R^2$、RMSE、MAE 和 SMAPE，因此表\ref{tab:model_compare}中的数值具有可比性。
 
 此外，消融实验与模型对比实验承担不同角色。模型对比实验回答“在最终特征体系下哪类算法表现最好”；消融实验回答“为何最终特征体系不引入 OSM 和 MODIS RGB”。前者使用 8 城市 310,756 样本随机切分结果，后者使用北京数据集上的站点切分 5 折交叉验证。两者评价目标不同，但共同支撑最终系统选择：输入采用气象+\aod{}+时间，部署模型采用 ResMLP。
 
@@ -362,21 +362,21 @@ RetroAir 的总体架构如图\ref{fig:pipeline}所示。系统以站点、日�
 
 \subsection{多算法对比}
 
-表\ref{tab:model_compare}展示了 8 城市统一模型对比结果。ResMLP 在所有主要指标上表现最好，$R^2$ 达到 0.889，RMSE 为 9.76 $\mu g/m^3$，MAE 为 6.22 $\mu g/m^3$，SMAPE 为 22.0\%。CatBoost、DCN-V2 和 LightGBM 的 $R^2$ 接近 0.81，XGBoost 相对较低。
+表\ref{tab:model_compare}展示了 8 城市统一模型对比结果。ResMLP 在所有主要指标上表现最好，10 个随机种子的平均 $R^2$ 达到 0.8929，平均 RMSE 为 9.59 $\mu g/m^3$，平均 MAE 为 6.20 $\mu g/m^3$，平均 SMAPE 为 21.9\%。CatBoost、DCN-V2 和 LightGBM 的平均 $R^2$ 接近 0.81，XGBoost 相对较低。
 
 \begin{table}[H]
   \centering
-  \caption{8 城市 310,756 样本上的模型对比结果}
+  \caption{8 城市 310,756 样本上的 10 随机种子模型对比结果}
   \label{tab:model_compare}
   \begin{tabular}{lccccc}
     \toprule
     模型 & $R^2$ & RMSE & MAE & SMAPE(\%) & 参数量 \\
     \midrule
-    ResMLP (warmup) & \textbf{0.889} & \textbf{9.76} & \textbf{6.22} & \textbf{22.0} & 144K \\
-    CatBoost & 0.810 & 12.77 & 8.43 & 27.4 & -- \\
-    DCN-V2 & 0.809 & 12.78 & 8.25 & 27.1 & 48K \\
-    LightGBM & 0.808 & 12.83 & 8.54 & 27.8 & -- \\
-    XGBoost & 0.767 & 14.12 & 9.32 & 29.5 & -- \\
+    ResMLP (warmup) & \textbf{0.8929$\pm$0.0031} & \textbf{9.59$\pm$0.14} & \textbf{6.20$\pm$0.04} & \textbf{21.9$\pm$0.1} & 144K \\
+    CatBoost & 0.8146$\pm$0.0034 & 12.61$\pm$0.12 & 8.40$\pm$0.02 & 27.3$\pm$0.1 & -- \\
+    DCN-V2 & 0.8132$\pm$0.0042 & 12.66$\pm$0.12 & 8.22$\pm$0.03 & 27.0$\pm$0.1 & 48K \\
+    LightGBM & 0.8119$\pm$0.0032 & 12.70$\pm$0.11 & 8.53$\pm$0.03 & 27.8$\pm$0.1 & -- \\
+    XGBoost & 0.7727$\pm$0.0037 & 13.96$\pm$0.11 & 9.29$\pm$0.03 & 29.5$\pm$0.1 & -- \\
     \bottomrule
   \end{tabular}
 \end{table}
@@ -392,7 +392,7 @@ RetroAir 的总体架构如图\ref{fig:pipeline}所示。系统以站点、日�
 
 从结果可以看出，ResMLP 相对树模型具有明显优势。可能原因包括：第一，经过标准化后的连续气象和 \aod{} 变量适合 MLP 建模；第二，残差结构能够捕捉多变量之间的非线性交互，同时减少深层网络训练不稳定；第三，warmup 和早停策略提高了训练过程的稳定性。相比之下，树模型虽然在表格数据上通常表现稳健，但在该任务中可能受限于气象和 \aod{} 连续变量之间较平滑的函数关系，难以达到 ResMLP 的拟合能力。
 
-若以 RMSE 衡量误差幅度，ResMLP 相比 CatBoost 的 RMSE 从 12.77 降至 9.76，下降约 23.6\%；相比 LightGBM 的 12.83 下降约 23.9\%；相比 XGBoost 的 14.12 下降约 30.9\%。在 MAE 上，ResMLP 相比 CatBoost 从 8.43 降至 6.22，下降约 26.2\%；相比 LightGBM 从 8.54 降至 6.22，下降约 27.2\%。这说明 ResMLP 的优势并非只体现在 $R^2$ 这类整体拟合指标上，也体现在具有实际单位含义的误差指标上。
+若以 RMSE 衡量误差幅度，ResMLP 相比 CatBoost 的平均 RMSE 从 12.61 降至 9.59，下降约 24.0\%；相比 LightGBM 的 12.70 下降约 24.5\%；相比 XGBoost 的 13.96 下降约 31.4\%。在 MAE 上，ResMLP 相比 CatBoost 从 8.40 降至 6.20，下降约 26.2\%；相比 LightGBM 从 8.53 降至 6.20，下降约 27.3\%。这说明 ResMLP 的优势并非只体现在 $R^2$ 这类整体拟合指标上，也体现在具有实际单位含义的误差指标上。
 
 \begin{table}[H]
   \centering
@@ -402,10 +402,10 @@ RetroAir 的总体架构如图\ref{fig:pipeline}所示。系统以站点、日�
     \toprule
     对比基线 & RMSE 下降幅度 & MAE 下降幅度 \\
     \midrule
-    CatBoost & 23.6\% & 26.2\% \\
-    DCN-V2 & 23.6\% & 24.6\% \\
-    LightGBM & 23.9\% & 27.2\% \\
-    XGBoost & 30.9\% & 33.3\% \\
+    CatBoost & 24.0\% & 26.2\% \\
+    DCN-V2 & 24.3\% & 24.6\% \\
+    LightGBM & 24.5\% & 27.3\% \\
+    XGBoost & 31.4\% & 33.3\% \\
     \bottomrule
   \end{tabular}
 \end{table}
@@ -510,7 +510,7 @@ RetroAir 的主要优势体现在三个方面。首先，系统使用公开可�
 
 \section{结论}
 
-本文围绕“端到端应用系统开发”目标，设计并实现了 RetroAir 历史 \pmfine{} 回顾性推断系统。系统融合 AKShare 监测站标签、NASA POWER 气象数据和 CAMS EAC4 气溶胶再分析数据，构建 17 维气象+\aod{}+时间特征体系，并完成数据处理、模型训练、统一评估和交互式应用展示。实验表明，在 8 城市 310,756 个样本上，ResMLP 取得最优预测性能，$R^2$ 达 0.889，RMSE 为 9.76 $\mu g/m^3$，优于 CatBoost、DCN-V2、LightGBM 和 XGBoost 等对比模型。消融实验进一步说明，气象与 \aod{} 是本任务中最关键的特征来源，加入 OSM 或 MODIS RGB 未带来增益。
+本文围绕“端到端应用系统开发”目标，设计并实现了 RetroAir 历史 \pmfine{} 回顾性推断系统。系统融合 AKShare 监测站标签、NASA POWER 气象数据和 CAMS EAC4 气溶胶再分析数据，构建 17 维气象+\aod{}+时间特征体系，并完成数据处理、模型训练、统一评估和交互式应用展示。实验表明，在 8 城市 310,756 个样本和 10 个随机种子重复实验设置下，ResMLP 取得最优平均预测性能，$R^2$ 为 $0.8929\pm0.0031$，RMSE 为 $9.59\pm0.14\ \mu g/m^3$，优于 CatBoost、DCN-V2、LightGBM 和 XGBoost 等对比模型。消融实验进一步说明，气象与 \aod{} 是本任务中最关键的特征来源，加入 OSM 或 MODIS RGB 未带来增益。
 
 总体而言，RetroAir 验证了利用多源公开环境数据和机器学习模型推断无站点地区历史 \pmfine{} 的可行性。项目不仅完成了数据挖掘算法实验，也将模型能力封装为可交互的 Web 应用，形成了从数据采集到结果展示的完整工程闭环。
 
@@ -546,8 +546,32 @@ Li, L., et al. \textit{Mining Public Datasets for Modeling Intra-City PM2.5 Conc
 \end{thebibliography}
 
 \appendix
-\section{团队分工声明（预留）}
+\section{团队分工声明}
 
-本附录用于放置团队分工声明。具体内容将另行整理并作为附录材料补充。
+本项目由黄一和、夏浩博、黄迪、许君达四名成员协作完成。团队按照数据工程、算法实现、实验评估和工程部署四个模块进行分工，并通过统一的数据格式、脚本入口和模型文件路径进行协作。各成员的具体贡献见表\ref{tab:team_contribution}。
+
+\begin{table}[H]
+  \centering
+  \caption{团队成员分工与贡献声明}
+  \label{tab:team_contribution}
+  \small
+  \begin{tabularx}{\textwidth}{llXc}
+    \toprule
+    成员 & 角色 & 主要工作内容与对应交付物 & 工作量占比 \\
+    \midrule
+    黄一和 & 算法核心 &
+    负责 CAMS EAC4 \aod{} 特征提取模块与深度学习建模部分。具体包括设计并实现 \texttt{03\_fetch\_aod.py} 中的 NetCDF 读取、站点最近网格匹配、日均 \aod{} 特征提取和 Angstrom 指数计算；在 \texttt{scripts/models/nn\_defs.py} 中实现 ResMLP、DCN-V2、FT-Transformer 等神经网络结构；配合 \texttt{scripts/common/torch\_utils.py} 完成 PyTorch 训练流程、warmup 学习率调度和早停策略；负责深度学习模型训练与调优，并参与报告中模型方法、实验结果和局限性分析相关章节撰写。 & 25\% \\
+    夏浩博 & 数据工程 &
+    负责地面监测站 \pmfine{} 标签、气象数据和多源融合数据集构建。具体包括实现 \texttt{01\_fetch\_aqi.py} 中的 AKShare 真气网监测站数据抓取、站点名称规范化和经纬度清单关联；实现 \texttt{02\_fetch\_weather.py} 中的 NASA POWER 气象数据批量下载、Open-Meteo 兜底和本地缓存机制；实现 \texttt{04\_merge\_data.py} 与 \texttt{05\_merge\_to\_final.py} 中的三源数据合并、去重、缺失值过滤和多城市数据集汇总；参与报告中数据来源、数据处理与特征工程章节撰写。 & 25\% \\
+    黄迪 & 实验评估 &
+    负责树模型实现、超参数设置、多算法统一对比和特征消融实验。具体包括实现 \texttt{scripts/models/train\_catboost.py}、\texttt{train\_lightgbm.py}、\texttt{train\_xgboost.py} 等树模型训练入口；在 \texttt{06\_compare\_algorithms.py} 中整合 ResMLP、DCN-V2、CatBoost、LightGBM 和 XGBoost 的统一训练、评估、指标保存和对比图生成流程；设计并执行 OSM、MODIS RGB、气象和 \aod{} 特征组合消融实验；负责模型对比表、消融结果和误差分析相关报告内容。 & 25\% \\
+    许君达 & 工程部署 &
+    负责推理管线、交互式 Web 应用、文档和最终交付整合。具体包括实现 \texttt{scripts/common/data\_utils.py} 中的数据加载、标准化、随机切分和评估指标函数；实现 \texttt{scripts/inference.py} 中的模型加载、在线气象获取、本地 \aod{} 提取、特征组装和 \pmfine{} 预测封装；开发 \texttt{app.py} 中基于 Streamlit、Folium 和地图组件的交互式界面；维护 \texttt{README.md}、依赖说明、运行说明和演示材料，并参与报告中系统设计、交互式应用实现和交付物映射章节撰写。 & 25\% \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+从交付边界看，夏浩博负责输出可复用的多源训练数据集，黄一和负责输出深度学习模型结构与训练权重，黄迪负责输出多算法评估结果与特征选择结论，许君达负责将数据、模型和推理逻辑集成为可运行的用户界面和项目文档。上述分工覆盖了项目要求中的数据处理、模型训练、模型评估和交互展示四个核心环节，且各成员均有明确的代码文件、报告章节和可量化工作量对应关系。
 
 \end{document}
+

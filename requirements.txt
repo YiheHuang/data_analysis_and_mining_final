@@ -1,4 +1,4 @@
-# === MVP 核心依赖 ===
+# === 核心依赖 ===
 akshare>=1.14.0
 pandas>=2.0.0
 numpy>=1.24.0
@@ -14,12 +14,16 @@ cdsapi>=0.7.0
 xarray>=2024.0.0
 netCDF4>=1.6.0
 lightgbm>=4.0.0
+catboost>=1.2.0
+matplotlib>=3.8.0
+folium>=0.15.0
+streamlit-folium>=0.18.0
+python-dotenv>=1.0.0
 
-# === 完整版追加 ===
+# === 可选扩展依赖 ===
 # torchvision>=0.16.0
 # datasets>=2.15.0       # HuggingFace EuroSAT
 # plotly>=5.17.0
-# folium>=0.15.0
 # shap>=0.43.0
 # einops>=0.7.0
 # pyyaml>=6.0
